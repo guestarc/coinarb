@@ -73,7 +73,6 @@ CREATE TABLE IF NOT EXISTS observations (
   parser_version TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_obs_market ON observations(canonical_sku, dealer_id, side, observed_at_utc);
-CREATE INDEX IF NOT EXISTS idx_obs_poll ON observations(poll_run_id, dealer_id);
 CREATE TABLE IF NOT EXISTS spot_observations (
   spot_observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
   poll_run_id TEXT NOT NULL,
