@@ -2,12 +2,12 @@ from coinarb.adapters.jm_bullion import JMBullionAdapter
 from coinarb.adapters.bullion_exchanges import BullionExchangesAdapter
 from coinarb.adapters.kitco import KitcoAdapter
 from coinarb.adapters.money_metals import MoneyMetalsAdapter
-from coinarb.adapters.base import RetrievalError
+from coinarb.adapters.base import RetrievalError, ParserError
 from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.0"
+COLLECTOR_VERSION = "0.3.1"
 
 
 def classify_retrieval(exc: RetrievalError) -> str:
@@ -36,8 +36,14 @@ def run_poll(store=None):
             store.finish_dealer(poll_run_id, adapter.dealer_id, "success", len(collection.observations))
             successes += 1
         except RetrievalError as exc:
+            if exc.evidence is not None:
+                store.record_fetch(poll_run_id, adapter.dealer_id, exc.evidence, retain_reason="retrieval_failure")
             status = classify_retrieval(exc)
             store.finish_dealer(poll_run_id, adapter.dealer_id, status, 0, type(exc).__name__, str(exc))
+        except ParserError as exc:
+            for evidence in exc.fetches:
+                store.record_fetch(poll_run_id, adapter.dealer_id, evidence, retain_reason="parser_failure")
+            store.finish_dealer(poll_run_id, adapter.dealer_id, "parser_failure", 0, type(exc).__name__, str(exc))
         except ValueError as exc:
             store.finish_dealer(poll_run_id, adapter.dealer_id, "parser_failure", 0, type(exc).__name__, str(exc))
         except Exception as exc:
