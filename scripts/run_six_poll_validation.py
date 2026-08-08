@@ -13,6 +13,7 @@ from collector import run_poll
 
 POLL_COUNT = int(os.getenv("COINARB_VALIDATION_POLLS", "6"))
 INTERVAL_SECONDS = int(os.getenv("COINARB_VALIDATION_INTERVAL_SECONDS", "600"))
+WAIT_BEFORE_FIRST = os.getenv("COINARB_VALIDATION_WAIT_BEFORE_FIRST", "1") == "1"
 OUTPUT_DIR = Path(os.getenv("COINARB_VALIDATION_OUTPUT_DIR", "data/validation"))
 
 
@@ -45,9 +46,13 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_path = OUTPUT_DIR / f"six_poll_{stamp}.jsonl"
 
-    print(f"Starting {POLL_COUNT} polls, {INTERVAL_SECONDS} seconds apart")
+    print(f"Starting {POLL_COUNT} scheduled polls, {INTERVAL_SECONDS} seconds apart")
     print(f"Dealers: {os.getenv('COINARB_DEALERS', 'all')}")
     print(f"Output: {output_path}")
+
+    if WAIT_BEFORE_FIRST:
+        print(f"First scheduled poll in {INTERVAL_SECONDS} seconds")
+        time.sleep(INTERVAL_SECONDS)
 
     for index in range(1, POLL_COUNT + 1):
         started = time.monotonic()
