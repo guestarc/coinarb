@@ -16,15 +16,13 @@ class BullionBrothersAdapter(DealerAdapter):
         start = lower.find(cls.TITLE.lower())
         if start < 0:
             raise ValueError("canonical product title not found")
-        block = text[start:start + 700]
+        block = text[start:start + 350]
         prices = re.findall(r"\$([0-9,]+\.\d{2})", block)
+        # Current top-items row exposes one retail tier followed by the buyback.
         if len(prices) < 2:
             raise ValueError("ask/buyback prices not found")
-        buyback_match = re.search(r"Buyback Price\s*\$([0-9,]+\.\d{2})", block, re.I)
-        if not buyback_match:
-            raise ValueError("buyback price not found")
         ask = float(prices[0].replace(",", ""))
-        bid = float(buyback_match.group(1).replace(",", ""))
+        bid = float(prices[1].replace(",", ""))
         return [
             Observation(cls.dealer_id, canonical_sku, "ask", ask, cls.PRODUCT_URL, cls.TITLE, quantity_min=1, inventory_status="available"),
             Observation(cls.dealer_id, canonical_sku, "bid", bid, cls.PRODUCT_URL, cls.TITLE, quantity_min=1, inventory_status="displayed_buyback", bid_quality="B"),
