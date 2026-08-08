@@ -16,6 +16,6 @@ services:
 
 databases:
   - name: coinarb-gate1-db
-    plan: basic-256mb
+    plan: free
     region: oregon
     postgresMajorVersion: "18"
