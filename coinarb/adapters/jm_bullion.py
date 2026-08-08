@@ -11,11 +11,11 @@ class JMBullionAdapter(DealerAdapter):
         return self.collect_with_evidence(canonical_sku).observations
 
     def collect_with_evidence(self, canonical_sku: str):
-        text, evidence = self.fetch_text(self.PRODUCT_URL)
+        text, evidence = self.fetch_text_with_browser_fallback(self.PRODUCT_URL)
         title = "1 oz American Gold Eagle Coin (Random Year)"
-        if title not in text:
+        if title.lower() not in text.lower():
             raise ValueError("canonical product title not found")
-        m = re.search(r"1 oz American Gold Eagle Coin \(Random Year\).*?(?:As Low As:|From:)\s*\$([0-9,]+\.\d{2})", text)
+        m = re.search(r"1 oz American Gold Eagle Coin \(Random Year\).*?(?:As Low As:|From:)\s*\$([0-9,]+\.\d{2})", text, re.I | re.S)
         if not m:
             raise ValueError("JM ask not found; fail closed pending validated retrieval path")
         ask = float(m.group(1).replace(',', ''))
