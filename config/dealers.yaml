@@ -3,19 +3,39 @@ dealers:
     name: JM Bullion
     parent: Gold.com
     poll_seconds: 600
-    enabled: true
+    enabled: false
   bullion_exchanges:
     name: Bullion Exchanges
     parent: Bullion Exchanges
-    poll_seconds: 600
-    enabled: true
-  money_metals:
-    name: Money Metals Exchange
-    parent: Money Metals Exchange
     poll_seconds: 600
     enabled: false
   kitco:
     name: Kitco
     parent: Kitco
     poll_seconds: 600
-    enabled: false
+    enabled: true
+  money_metals:
+    name: Money Metals Exchange
+    parent: Money Metals Exchange
+    poll_seconds: 600
+    enabled: true
+  bullionmax:
+    name: BullionMax
+    parent: BullionMax
+    poll_seconds: 600
+    enabled: true
+  bgasc:
+    name: BGASC
+    parent: BGASC
+    poll_seconds: 600
+    enabled: true
+  bullion_brothers:
+    name: Bullion Brothers
+    parent: Bullion Brothers LLC
+    poll_seconds: 600
+    enabled: true
+  fmr_gold:
+    name: FMR Gold
+    parent: FMR Gold
+    poll_seconds: 600
+    enabled: true

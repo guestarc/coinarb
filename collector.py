@@ -4,18 +4,26 @@ from coinarb.adapters.jm_bullion import JMBullionAdapter
 from coinarb.adapters.bullion_exchanges import BullionExchangesAdapter
 from coinarb.adapters.kitco import KitcoAdapter
 from coinarb.adapters.money_metals import MoneyMetalsAdapter
+from coinarb.adapters.bullionmax import BullionMaxAdapter
+from coinarb.adapters.bgasc import BGASCAdapter
+from coinarb.adapters.bullion_brothers import BullionBrothersAdapter
+from coinarb.adapters.fmr_gold import FMRGoldAdapter
 from coinarb.adapters.base import RetrievalError, ParserError
 from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.5"
+COLLECTOR_VERSION = "0.3.6"
 
 ADAPTERS = {
     "jm_bullion": JMBullionAdapter,
     "bullion_exchanges": BullionExchangesAdapter,
     "kitco": KitcoAdapter,
     "money_metals": MoneyMetalsAdapter,
+    "bullionmax": BullionMaxAdapter,
+    "bgasc": BGASCAdapter,
+    "bullion_brothers": BullionBrothersAdapter,
+    "fmr_gold": FMRGoldAdapter,
 }
 
 
