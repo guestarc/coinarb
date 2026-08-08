@@ -14,15 +14,47 @@ class FMRGoldAdapter(DealerAdapter):
     def parse_text(cls, text, canonical_sku):
         if cls.TITLE.lower() not in text.lower():
             raise ValueError("canonical product title not found")
-        ask_match = re.search(r"1\s*[–-]\s*9\s*\$?([0-9,]+\.\d{2})", text, re.I)
-        bid_match = re.search(r"Sell To Us Price:\s*\$([0-9,]+\.\d{2})", text, re.I)
+
+        # The rendered page may separate currency symbols from values. Anchor
+        # the ask to the 1-9 quantity row and the bid to the explicit label.
+        ask_match = re.search(
+            r"1\s*[–-]\s*9\s*\$?\s*([0-9,]+\.\d{2})",
+            text,
+            re.I,
+        )
+        bid_match = re.search(
+            r"Sell\s*To\s*Us\s*Price\s*:?\s*\$?\s*([0-9,]+\.\d{2})",
+            text,
+            re.I,
+        )
         if not ask_match:
             raise ValueError("quantity-1 ask row not found")
         if not bid_match:
             raise ValueError("sell-to-us price not found")
+
         return [
-            Observation(cls.dealer_id, canonical_sku, "ask", float(ask_match.group(1).replace(",", "")), cls.PRODUCT_URL, cls.TITLE, quantity_min=1, quantity_max=9, inventory_status="available"),
-            Observation(cls.dealer_id, canonical_sku, "bid", float(bid_match.group(1).replace(",", "")), cls.PRODUCT_URL, cls.TITLE, quantity_min=1, inventory_status="call_to_lock", bid_quality="B"),
+            Observation(
+                cls.dealer_id,
+                canonical_sku,
+                "ask",
+                float(ask_match.group(1).replace(",", "")),
+                cls.PRODUCT_URL,
+                cls.TITLE,
+                quantity_min=1,
+                quantity_max=9,
+                inventory_status="available",
+            ),
+            Observation(
+                cls.dealer_id,
+                canonical_sku,
+                "bid",
+                float(bid_match.group(1).replace(",", "")),
+                cls.PRODUCT_URL,
+                cls.TITLE,
+                quantity_min=1,
+                inventory_status="call_to_lock",
+                bid_quality="B",
+            ),
         ]
 
     def collect(self, canonical_sku):
