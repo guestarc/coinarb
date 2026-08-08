@@ -1,0 +1,21 @@
+services:
+  - type: cron
+    name: coinarb-gate1-collector
+    runtime: python
+    plan: starter
+    schedule: "*/10 * * * *"
+    buildCommand: pip install -e .
+    startCommand: python collector.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: coinarb-gate1-db
+          property: connectionString
+
+databases:
+  - name: coinarb-gate1-db
+    plan: basic-256mb
+    region: oregon
+    postgresMajorVersion: "18"
