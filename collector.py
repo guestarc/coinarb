@@ -1,3 +1,5 @@
+import os
+
 from coinarb.adapters.jm_bullion import JMBullionAdapter
 from coinarb.adapters.bullion_exchanges import BullionExchangesAdapter
 from coinarb.adapters.kitco import KitcoAdapter
@@ -7,7 +9,26 @@ from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.4"
+COLLECTOR_VERSION = "0.3.5"
+
+ADAPTERS = {
+    "jm_bullion": JMBullionAdapter,
+    "bullion_exchanges": BullionExchangesAdapter,
+    "kitco": KitcoAdapter,
+    "money_metals": MoneyMetalsAdapter,
+}
+
+
+def selected_adapters():
+    raw = os.getenv("COINARB_DEALERS", "").strip()
+    if not raw:
+        names = list(ADAPTERS)
+    else:
+        names = [name.strip() for name in raw.split(",") if name.strip()]
+        unknown = [name for name in names if name not in ADAPTERS]
+        if unknown:
+            raise ValueError(f"unknown COINARB_DEALERS: {', '.join(unknown)}")
+    return [ADAPTERS[name]() for name in names]
 
 
 def classify_retrieval(exc: RetrievalError) -> str:
@@ -16,9 +37,9 @@ def classify_retrieval(exc: RetrievalError) -> str:
     return "retrieval_failure"
 
 
-def run_poll(store=None):
+def run_poll(store=None, adapters=None):
     store = store or Store.from_env()
-    adapters = [JMBullionAdapter(), BullionExchangesAdapter(), KitcoAdapter(), MoneyMetalsAdapter()]
+    adapters = adapters or selected_adapters()
     poll_run_id = store.start_poll(COLLECTOR_VERSION)
     poll_observations = []
     successes = 0
@@ -82,8 +103,7 @@ def run_poll(store=None):
     }
 
 
-def main():
-    result = run_poll()
+def print_result(result):
     print(f"poll_run_id={result['poll_run_id']} status={result['status']} observations={len(result['observations'])}")
     for observation in result["observations"]:
         print(
@@ -103,6 +123,10 @@ def main():
         print(dealer)
     for opportunity in result["opportunities"]:
         print("OPPORTUNITY", opportunity)
+
+
+def main():
+    print_result(run_poll())
 
 
 if __name__ == "__main__":
