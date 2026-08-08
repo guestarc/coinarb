@@ -59,13 +59,14 @@ class DealerAdapter(ABC):
         except ImportError as exc:
             raise RetrievalError("Playwright is not installed; install coinarb[browser]", url) from exc
 
+        headless = os.getenv("COINARB_BROWSER_HEADLESS", "1") != "0"
         started = time.perf_counter()
         with sync_playwright() as p:
-            browser = p.chromium.launch(channel="chrome", headless=True)
-            page = browser.new_page(locale="en-US")
+            browser = p.chromium.launch(channel="chrome", headless=headless)
+            page = browser.new_page(locale="en-US", viewport={"width": 1440, "height": 1000})
             try:
                 response = page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(1500)
+                page.wait_for_timeout(2000)
                 body = page.content()
                 status = response.status if response else None
                 latency = round((time.perf_counter() - started) * 1000)
