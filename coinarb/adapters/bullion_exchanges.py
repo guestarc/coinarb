@@ -1,3 +1,4 @@
+import os
 import re
 from .base import DealerAdapter
 from ..models import Observation, DealerCollection
@@ -17,21 +18,42 @@ class BullionExchangesAdapter(DealerAdapter):
         if not title:
             raise ValueError('canonical product title not found')
 
-        m = re.search(r'(?:1\s*-\s*19|1\+)\s*\$([0-9,]+\.\d{2})(?:\s*\$([0-9,]+\.\d{2})){1,2}', text, re.I)
-        if not m:
-            m = re.search(r'(?:1\s*-\s*19|1\+).*?\$([0-9,]+\.\d{2})\s+\$[0-9,]+\.\d{2}', text, re.I | re.S)
+        # Anchor the quantity-one row to this product and take the first price,
+        # which is the (E)check/Wire price. Current live layout is 1-19 followed
+        # by wire, crypto and card prices.
+        m = re.search(
+            r'(?:1\s*-\s*19|1\+)\s*\$([0-9,]+\.\d{2})\s*\$([0-9,]+\.\d{2})(?:\s*\$([0-9,]+\.\d{2}))?',
+            text,
+            re.I,
+        )
         if not m:
             raise ValueError('quantity-1 ask row not found')
 
         ask = float(m.group(1).replace(',', ''))
         bm = re.search(r'Our buy back price:\s*\$([0-9,]+\.\d{2})', text, re.I)
-        out = [Observation(cls.dealer_id, canonical_sku, 'ask', ask, cls.PRODUCT_URL, title,
-                           quantity_min=1,
-                           inventory_status='in_stock' if ('Buy Now' in text or 'In Stock' in text) else 'unknown')]
+        out = [Observation(
+            cls.dealer_id,
+            canonical_sku,
+            'ask',
+            ask,
+            cls.PRODUCT_URL,
+            title,
+            quantity_min=1,
+            quantity_max=19,
+            inventory_status='in_stock' if ('Buy Now' in text or 'In Stock' in text) else 'unknown',
+        )]
         if bm:
-            out.append(Observation(cls.dealer_id, canonical_sku, 'bid', float(bm.group(1).replace(',', '')),
-                                   cls.PRODUCT_URL, title, quantity_min=1,
-                                   inventory_status='buyback_displayed', bid_quality='B'))
+            out.append(Observation(
+                cls.dealer_id,
+                canonical_sku,
+                'bid',
+                float(bm.group(1).replace(',', '')),
+                cls.PRODUCT_URL,
+                title,
+                quantity_min=1,
+                inventory_status='buyback_displayed',
+                bid_quality='B',
+            ))
         return out
 
     def collect(self, canonical_sku):
@@ -39,4 +61,21 @@ class BullionExchangesAdapter(DealerAdapter):
 
     def collect_with_evidence(self, canonical_sku):
         text, evidence = self.fetch_text(self.PRODUCT_URL)
-        return DealerCollection(observations=self.parse_text(text, canonical_sku), fetches=[evidence])
+        try:
+            observations = self.parse_text(text, canonical_sku)
+            return DealerCollection(observations=observations, fetches=[evidence])
+        except ValueError as direct_exc:
+            # Bullion Exchanges sometimes returns HTTP 200 with a non-product
+            # response to scripted clients. If explicitly enabled, retry once in
+            # the user's installed Chrome rather than weakening parser rules.
+            if os.getenv('COINARB_BROWSER_FALLBACK', '0') != '1':
+                return DealerCollection(fetches=[evidence], parse_errors=[str(direct_exc)])
+            browser_text, browser_evidence = self.fetch_text_browser(self.PRODUCT_URL)
+            try:
+                observations = self.parse_text(browser_text, canonical_sku)
+                return DealerCollection(observations=observations, fetches=[evidence, browser_evidence])
+            except ValueError as browser_exc:
+                return DealerCollection(
+                    fetches=[evidence, browser_evidence],
+                    parse_errors=[f'direct: {direct_exc}', f'browser: {browser_exc}'],
+                )

@@ -7,7 +7,7 @@ from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.2"
+COLLECTOR_VERSION = "0.3.3"
 
 
 def classify_retrieval(exc: RetrievalError) -> str:
