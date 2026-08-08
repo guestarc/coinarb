@@ -7,7 +7,7 @@ from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.1"
+COLLECTOR_VERSION = "0.3.2"
 
 
 def classify_retrieval(exc: RetrievalError) -> str:
@@ -28,13 +28,28 @@ def run_poll(store=None):
         try:
             collection = adapter.collect_with_evidence(SKU)
             fetch_ids = {}
+            retain_reason = "parser_failure" if collection.parse_errors else None
             for evidence in collection.fetches:
-                fetch_ids[evidence.url] = store.record_fetch(poll_run_id, adapter.dealer_id, evidence)
+                fetch_ids[evidence.url] = store.record_fetch(poll_run_id, adapter.dealer_id, evidence, retain_reason=retain_reason)
             for observation in collection.observations:
                 store.insert_observation(observation, poll_run_id, fetch_ids.get(observation.source_url))
                 poll_observations.append(observation)
-            store.finish_dealer(poll_run_id, adapter.dealer_id, "success", len(collection.observations))
-            successes += 1
+
+            if collection.parse_errors:
+                status = "partial_parser_failure" if collection.observations else "parser_failure"
+                store.finish_dealer(
+                    poll_run_id,
+                    adapter.dealer_id,
+                    status,
+                    len(collection.observations),
+                    "ValueError",
+                    "; ".join(collection.parse_errors),
+                )
+                if collection.observations:
+                    successes += 1
+            else:
+                store.finish_dealer(poll_run_id, adapter.dealer_id, "success", len(collection.observations))
+                successes += 1
         except RetrievalError as exc:
             if exc.evidence is not None:
                 store.record_fetch(poll_run_id, adapter.dealer_id, exc.evidence, retain_reason="retrieval_failure")
