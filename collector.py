@@ -8,12 +8,13 @@ from coinarb.adapters.bullionmax import BullionMaxAdapter
 from coinarb.adapters.bgasc import BGASCAdapter
 from coinarb.adapters.bullion_brothers import BullionBrothersAdapter
 from coinarb.adapters.fmr_gold import FMRGoldAdapter
+from coinarb.adapters.silver_com import SilverComAdapter
 from coinarb.adapters.base import RetrievalError, ParserError
 from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.6"
+COLLECTOR_VERSION = "0.3.7"
 
 ADAPTERS = {
     "jm_bullion": JMBullionAdapter,
@@ -24,6 +25,7 @@ ADAPTERS = {
     "bgasc": BGASCAdapter,
     "bullion_brothers": BullionBrothersAdapter,
     "fmr_gold": FMRGoldAdapter,
+    "silver_com": SilverComAdapter,
 }
 
 

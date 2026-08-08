@@ -2,6 +2,7 @@ from coinarb.adapters.bgasc import BGASCAdapter
 from coinarb.adapters.bullion_brothers import BullionBrothersAdapter
 from coinarb.adapters.bullionmax import BullionMaxAdapter
 from coinarb.adapters.fmr_gold import FMRGoldAdapter
+from coinarb.adapters.silver_com import SilverComAdapter
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
 
@@ -27,8 +28,29 @@ def test_fmr_gold_structure():
     assert obs[1].price == 3960.82 and obs[1].bid_quality == "B"
 
 
+def test_fmr_gold_rendered_text_without_currency_symbol():
+    text = "1 Oz American Gold Eagle Coin BU (Any Date) Quantity 1 - 9 4,173.60 4,257.07 4,340.54 Sell To Us Price 3,960.82"
+    obs = FMRGoldAdapter.parse_text(text, SKU)
+    assert obs[0].price == 4173.60
+    assert obs[1].price == 3960.82
+
+
 def test_bullion_brothers_structure():
-    text = "(Random Year) - 1oz American Gold Eagle Tier Qty Tier 1 Tier 2 Buyback Price $4,245.42 $4,012.10 Add to Cart"
+    text = "(Random Year) - 1oz American Gold Eagle Tier Qty Tier 1 Buyback Price $4,245.42 $4,012.10 Add to Cart"
     obs = BullionBrothersAdapter.parse_text(text, SKU)
     assert obs[0].price == 4245.42 and obs[0].side == "ask"
     assert obs[1].price == 4012.10 and obs[1].bid_quality == "B"
+
+
+def test_bullion_brothers_live_title_alias():
+    text = "Any Year - 1oz American Gold Eagle Qty 1+ $4,245.42 Buyback Price $4,012.10 Add to Cart"
+    obs = BullionBrothersAdapter.parse_text(text, SKU)
+    assert obs[0].price == 4245.42
+    assert obs[1].price == 4012.10
+
+
+def test_silver_com_structure():
+    text = "1 oz Gold American Eagle Coins (Random Year, BU) Qty 1-9 $4,250.10 $4,294.20 $4,426.50 Sell To Us Price: $4,010.25"
+    obs = SilverComAdapter.parse_text(text, SKU)
+    assert obs[0].price == 4250.10 and obs[0].side == "ask"
+    assert obs[1].price == 4010.25 and obs[1].bid_quality == "B"

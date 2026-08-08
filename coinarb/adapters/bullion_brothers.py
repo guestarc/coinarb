@@ -8,24 +8,34 @@ from ..models import Observation, DealerCollection
 class BullionBrothersAdapter(DealerAdapter):
     dealer_id = "bullion_brothers"
     PRODUCT_URL = "https://bullionbrother.com/top-items"
-    TITLE = "(Random Year) - 1oz American Gold Eagle"
+    TITLE_ALIASES = (
+        "Any Year - 1oz American Gold Eagle",
+        "(Random Year) - 1oz American Gold Eagle",
+    )
 
     @classmethod
     def parse_text(cls, text, canonical_sku):
         lower = text.lower()
-        start = lower.find(cls.TITLE.lower())
-        if start < 0:
+        title = next((candidate for candidate in cls.TITLE_ALIASES if candidate.lower() in lower), None)
+        if not title:
             raise ValueError("canonical product title not found")
-        block = text[start:start + 350]
-        prices = re.findall(r"\$([0-9,]+\.\d{2})", block)
-        # Current top-items row exposes one retail tier followed by the buyback.
+        start = lower.find(title.lower())
+        block = text[start:start + 500]
+
+        # Flattened page text can place the Buyback Price label before the row's
+        # numeric values. Require the label, then treat the first product-block
+        # price as the retail ask and the last as the displayed buyback.
+        if not re.search(r"Buyback\s*Price", block, re.I):
+            raise ValueError("buyback label not found")
+        prices = re.findall(r"\$\s*([0-9,]+\.\d{2})", block)
         if len(prices) < 2:
             raise ValueError("ask/buyback prices not found")
+
         ask = float(prices[0].replace(",", ""))
-        bid = float(prices[1].replace(",", ""))
+        bid = float(prices[-1].replace(",", ""))
         return [
-            Observation(cls.dealer_id, canonical_sku, "ask", ask, cls.PRODUCT_URL, cls.TITLE, quantity_min=1, inventory_status="available"),
-            Observation(cls.dealer_id, canonical_sku, "bid", bid, cls.PRODUCT_URL, cls.TITLE, quantity_min=1, inventory_status="displayed_buyback", bid_quality="B"),
+            Observation(cls.dealer_id, canonical_sku, "ask", ask, cls.PRODUCT_URL, title, quantity_min=1, inventory_status="available"),
+            Observation(cls.dealer_id, canonical_sku, "bid", bid, cls.PRODUCT_URL, title, quantity_min=1, inventory_status="displayed_buyback", bid_quality="B"),
         ]
 
     def collect(self, canonical_sku):

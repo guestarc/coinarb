@@ -5,20 +5,25 @@ from .base import DealerAdapter
 from ..models import Observation, DealerCollection
 
 
-class FMRGoldAdapter(DealerAdapter):
-    dealer_id = "fmr_gold"
-    PRODUCT_URL = "https://fmrgold.com/product/1-oz-american-gold-eagle-coin-bu-any/"
-    TITLE = "1 Oz American Gold Eagle Coin BU (Any Date)"
+class SilverComAdapter(DealerAdapter):
+    dealer_id = "silver_com"
+    PRODUCT_URL = "https://www.silver.com/1-oz-gold-american-eagles/"
+    TITLE_ALIASES = (
+        "1 oz Gold American Eagle Coins (Random Year, BU)",
+        "1 oz Gold American Eagles",
+    )
 
     @classmethod
     def parse_text(cls, text, canonical_sku):
-        if cls.TITLE.lower() not in text.lower():
+        lower = text.lower()
+        title = next((candidate for candidate in cls.TITLE_ALIASES if candidate.lower() in lower), None)
+        if not title:
             raise ValueError("canonical product title not found")
 
-        # The rendered page may separate currency symbols from values. Anchor
-        # the ask to the 1-9 quantity row and the bid to the explicit label.
+        # Retail tables on Silver.com use quantity tiers with the first price as
+        # check/wire. Accept 1+ or 1-9 as the quantity-one tier.
         ask_match = re.search(
-            r"1\s*[–-]\s*9\s*\$?\s*([0-9,]+\.\d{2})",
+            r"(?:1\s*\+|1\s*[–-]\s*9)\s*\$?\s*([0-9,]+\.\d{2})",
             text,
             re.I,
         )
@@ -39,9 +44,8 @@ class FMRGoldAdapter(DealerAdapter):
                 "ask",
                 float(ask_match.group(1).replace(",", "")),
                 cls.PRODUCT_URL,
-                cls.TITLE,
+                title,
                 quantity_min=1,
-                quantity_max=9,
                 inventory_status="available",
             ),
             Observation(
@@ -50,7 +54,7 @@ class FMRGoldAdapter(DealerAdapter):
                 "bid",
                 float(bid_match.group(1).replace(",", "")),
                 cls.PRODUCT_URL,
-                cls.TITLE,
+                title,
                 quantity_min=1,
                 inventory_status="call_to_lock",
                 bid_quality="B",
