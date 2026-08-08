@@ -1,0 +1,21 @@
+dealers:
+  jm_bullion:
+    name: JM Bullion
+    parent: Gold.com
+    poll_seconds: 600
+    enabled: true
+  bullion_exchanges:
+    name: Bullion Exchanges
+    parent: Bullion Exchanges
+    poll_seconds: 600
+    enabled: true
+  money_metals:
+    name: Money Metals Exchange
+    parent: Money Metals Exchange
+    poll_seconds: 600
+    enabled: false
+  kitco:
+    name: Kitco
+    parent: Kitco
+    poll_seconds: 600
+    enabled: false

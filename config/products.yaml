@@ -1,0 +1,13 @@
+products:
+  - canonical_sku: US-AGE-1OZ-RANDOM-BU
+    metal: gold
+    mint: US Mint
+    product: American Gold Eagle
+    year: random
+    fine_weight_oz: 1.0
+    purity: 0.9167
+    condition: BU
+    aliases:
+      - random year 1 oz american gold eagle
+      - 1 oz gold eagle random year
+      - american gold eagle 1 oz varied year

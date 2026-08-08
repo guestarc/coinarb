@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coinarb"
+version = "0.2.0"
+description = "Dealer-to-dealer physical precious metals arbitrage scanner"
+requires-python = ">=3.9"
+dependencies = [
+    "beautifulsoup4",
+    "httpx",
+    "pydantic",
+    "PyYAML",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["coinarb*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
