@@ -16,6 +16,12 @@ class RetrievalError(RuntimeError):
         self.evidence = evidence
 
 
+class ParserError(ValueError):
+    def __init__(self, message, fetches=None):
+        super().__init__(message)
+        self.fetches = fetches or []
+
+
 class DealerAdapter(ABC):
     dealer_id: str
     headers = {
@@ -23,26 +29,25 @@ class DealerAdapter(ABC):
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
         "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
     }
 
     def fetch_text(self, url: str):
         started = time.perf_counter()
         try:
-            response = requests.get(url, timeout=20, headers=self.headers)
-            latency = round((time.perf_counter() - started) * 1000)
-            body = response.text
-            digest = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest()
-            evidence = FetchEvidence(url=url, status_code=response.status_code, latency_ms=latency, content_hash=digest, body=body)
-            response.raise_for_status()
+            response = requests.get(url, timeout=20, headers=self.headers, allow_redirects=True)
         except requests.RequestException as exc:
             latency = round((time.perf_counter() - started) * 1000)
-            response = getattr(exc, "response", None)
-            status = getattr(response, "status_code", None)
-            body = getattr(response, "text", "") or ""
-            digest = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest() if body else None
-            evidence = FetchEvidence(url=url, status_code=status, latency_ms=latency, content_hash=digest, body=body,
-                                     error_type=type(exc).__name__, error_message=str(exc))
-            raise RetrievalError(str(exc), url, status, latency, evidence) from exc
+            raise RetrievalError(str(exc), url, None, latency) from exc
+
+        latency = round((time.perf_counter() - started) * 1000)
+        body = response.text
+        digest = hashlib.sha256(body.encode("utf-8", errors="replace")).hexdigest()
+        evidence = FetchEvidence(url=url, status_code=response.status_code, latency_ms=latency, content_hash=digest, body=body)
+        try:
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            raise RetrievalError(str(exc), url, response.status_code, latency, evidence) from exc
         text = " ".join(BeautifulSoup(body, "html.parser").stripped_strings)
         return text, evidence
 
