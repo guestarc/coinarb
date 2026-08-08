@@ -1,5 +1,5 @@
 import re
-from .base import DealerAdapter
+from .base import DealerAdapter, ParserError
 from ..models import Observation, DealerCollection
 
 
@@ -35,9 +35,13 @@ class KitcoAdapter(DealerAdapter):
         return self.collect_with_evidence(canonical_sku).observations
 
     def collect_with_evidence(self, canonical_sku):
+        fetches = []
         buy_text, buy_evidence = self.fetch_text(self.BUY_URL)
+        fetches.append(buy_evidence)
         sell_text, sell_evidence = self.fetch_text(self.SELL_URL)
-        return DealerCollection(
-            observations=[self.parse_buy_text(buy_text, canonical_sku), self.parse_sell_text(sell_text, canonical_sku)],
-            fetches=[buy_evidence, sell_evidence],
-        )
+        fetches.append(sell_evidence)
+        try:
+            observations = [self.parse_buy_text(buy_text, canonical_sku), self.parse_sell_text(sell_text, canonical_sku)]
+        except ValueError as exc:
+            raise ParserError(str(exc), fetches=fetches) from exc
+        return DealerCollection(observations=observations, fetches=fetches)
