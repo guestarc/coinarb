@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coinarb"
-version = "0.3.2"
+version = "0.3.3"
 description = "Dealer-to-dealer physical precious metals arbitrage scanner"
 requires-python = ">=3.12"
 dependencies = [
