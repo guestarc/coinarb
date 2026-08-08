@@ -7,7 +7,7 @@ from coinarb.db import Store
 from coinarb.opportunities import compute_opportunities
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
-COLLECTOR_VERSION = "0.3.3"
+COLLECTOR_VERSION = "0.3.4"
 
 
 def classify_retrieval(exc: RetrievalError) -> str:
@@ -76,7 +76,7 @@ def run_poll(store=None):
     return {
         "poll_run_id": poll_run_id,
         "status": poll_status,
-        "observations": len(poll_observations),
+        "observations": poll_observations,
         "opportunities": opportunities,
         "dealer_health": store.health_summary(poll_run_id),
     }
@@ -84,7 +84,21 @@ def run_poll(store=None):
 
 def main():
     result = run_poll()
-    print(f"poll_run_id={result['poll_run_id']} status={result['status']} observations={result['observations']}")
+    print(f"poll_run_id={result['poll_run_id']} status={result['status']} observations={len(result['observations'])}")
+    for observation in result["observations"]:
+        print(
+            "OBSERVATION",
+            {
+                "dealer_id": observation.dealer_id,
+                "side": observation.side,
+                "price": observation.price,
+                "quantity_min": observation.quantity_min,
+                "quantity_max": observation.quantity_max,
+                "inventory_status": observation.inventory_status,
+                "bid_quality": observation.bid_quality,
+                "source_url": observation.source_url,
+            },
+        )
     for dealer in result["dealer_health"]:
         print(dealer)
     for opportunity in result["opportunities"]:
