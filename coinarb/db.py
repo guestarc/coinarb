@@ -58,6 +58,22 @@ class Store:
                          WHERE poll_run_id=? AND dealer_id=?""",
                         (utc_now_iso(), status, observation_count, error_type, error_message, poll_run_id, dealer_id))
 
+    def record_fetch(self, poll_run_id, dealer_id, evidence, retain_reason=None):
+        with self.connect() as con:
+            previous = con.execute("""SELECT content_hash FROM fetch_events WHERE dealer_id=? AND source_url=? AND content_hash IS NOT NULL
+                                      ORDER BY fetch_id DESC LIMIT 1""", (dealer_id, evidence.url)).fetchone()
+            stale = bool(previous and previous[0] == evidence.content_hash)
+            cur = con.execute("""INSERT INTO fetch_events
+                (poll_run_id,dealer_id,source_url,fetched_at_utc,http_status,latency_ms,content_hash,stale_content,error_type,error_message)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (poll_run_id,dealer_id,evidence.url,utc_now_iso(),evidence.status_code,evidence.latency_ms,evidence.content_hash,int(stale),evidence.error_type,evidence.error_message))
+            fetch_id = cur.lastrowid
+            reason = retain_reason or ("content_changed" if not stale else None)
+            if evidence.body and reason:
+                con.execute("INSERT INTO raw_snapshots (fetch_id,content_hash,body,retained_reason) VALUES (?,?,?,?)",
+                            (fetch_id,evidence.content_hash,evidence.body,reason))
+        return fetch_id
+
     def insert_observation(self, obs: Observation, poll_run_id=None, fetch_id=None):
         obs = obs.with_timestamp()
         with self.connect() as con:
@@ -103,6 +119,22 @@ class PostgresStore:
         with self.connect() as con:
             con.execute("""UPDATE dealer_poll_status SET completed_at_utc=%s,status=%s,observation_count=%s,error_type=%s,error_message=%s
                            WHERE poll_run_id=%s AND dealer_id=%s""", (utc_now_iso(), status, observation_count, error_type, error_message, poll_run_id, dealer_id))
+
+    def record_fetch(self, poll_run_id, dealer_id, evidence, retain_reason=None):
+        with self.connect() as con:
+            previous = con.execute("""SELECT content_hash FROM fetch_events WHERE dealer_id=%s AND source_url=%s AND content_hash IS NOT NULL
+                                      ORDER BY fetch_id DESC LIMIT 1""", (dealer_id, evidence.url)).fetchone()
+            stale = bool(previous and previous[0] == evidence.content_hash)
+            row = con.execute("""INSERT INTO fetch_events
+                (poll_run_id,dealer_id,source_url,fetched_at_utc,http_status,latency_ms,content_hash,stale_content,error_type,error_message)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING fetch_id""",
+                (poll_run_id,dealer_id,evidence.url,utc_now_iso(),evidence.status_code,evidence.latency_ms,evidence.content_hash,stale,evidence.error_type,evidence.error_message)).fetchone()
+            fetch_id = row[0]
+            reason = retain_reason or ("content_changed" if not stale else None)
+            if evidence.body and reason:
+                con.execute("INSERT INTO raw_snapshots (fetch_id,content_hash,body,retained_reason) VALUES (%s,%s,%s,%s)",
+                            (fetch_id,evidence.content_hash,evidence.body,reason))
+        return fetch_id
 
     def insert_observation(self, obs, poll_run_id=None, fetch_id=None):
         obs = obs.with_timestamp()
