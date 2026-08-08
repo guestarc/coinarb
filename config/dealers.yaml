@@ -23,7 +23,7 @@ dealers:
     name: BullionMax
     parent: BullionMax
     poll_seconds: 600
-    enabled: true
+    enabled: false
   bgasc:
     name: BGASC
     parent: BGASC
@@ -37,5 +37,10 @@ dealers:
   fmr_gold:
     name: FMR Gold
     parent: FMR Gold
+    poll_seconds: 600
+    enabled: true
+  silver_com:
+    name: Silver.com
+    parent: Silver.com
     poll_seconds: 600
     enabled: true
