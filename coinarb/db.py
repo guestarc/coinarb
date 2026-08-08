@@ -2,6 +2,7 @@ import os
 import sqlite3
 import uuid
 from pathlib import Path
+import yaml
 from .models import Observation, utc_now_iso
 
 
@@ -29,6 +30,7 @@ class Store:
         with self.connect() as con, open(self.schema_path, "r", encoding="utf-8") as f:
             con.executescript(f.read())
         self._migrate_sqlite()
+        self._seed_reference_data()
 
     def _migrate_sqlite(self):
         with self.connect() as con:
@@ -37,6 +39,45 @@ class Store:
                 con.execute("ALTER TABLE observations ADD COLUMN poll_run_id TEXT")
             if "fetch_id" not in cols:
                 con.execute("ALTER TABLE observations ADD COLUMN fetch_id INTEGER")
+
+    def _seed_reference_data(self):
+        """Populate reference rows required by the original SQLite schema.
+
+        Existing local databases created by v0.1 retain foreign keys from
+        observations -> dealers/products even though later schemas relaxed them.
+        Seeding from canonical config preserves those databases and makes upgrades
+        backward compatible without deleting historical evidence.
+        """
+        dealers_path = Path("config/dealers.yaml")
+        products_path = Path("config/products.yaml")
+        if not dealers_path.exists() or not products_path.exists():
+            return
+
+        dealers = yaml.safe_load(dealers_path.read_text(encoding="utf-8")) or {}
+        products = yaml.safe_load(products_path.read_text(encoding="utf-8")) or {}
+        with self.connect() as con:
+            for dealer_id, item in dealers.get("dealers", {}).items():
+                con.execute(
+                    """INSERT OR IGNORE INTO dealers (dealer_id,name,parent,enabled)
+                       VALUES (?,?,?,?)""",
+                    (dealer_id, item.get("name", dealer_id), item.get("parent"), int(bool(item.get("enabled", True)))),
+                )
+            for item in products.get("products", []):
+                con.execute(
+                    """INSERT OR IGNORE INTO products
+                       (canonical_sku,metal,mint,product,year_label,fine_weight_oz,purity,condition)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (
+                        item["canonical_sku"],
+                        item["metal"],
+                        item.get("mint"),
+                        item["product"],
+                        item.get("year") or item.get("year_label"),
+                        item["fine_weight_oz"],
+                        item.get("purity"),
+                        item.get("condition"),
+                    ),
+                )
 
     def start_poll(self, collector_version="0.3.0") -> str:
         poll_run_id = str(uuid.uuid4())
