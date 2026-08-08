@@ -22,18 +22,17 @@ class BullionBrothersAdapter(DealerAdapter):
         start = lower.find(title.lower())
         block = text[start:start + 500]
 
-        # The live top-items surface exposes the product row as one retail price
-        # followed by a labeled buyback price. Anchor the bid to the label so
-        # unrelated page prices cannot be mistaken for the product buyback.
+        # Flattened page text can place the Buyback Price label before the row's
+        # numeric values. Require the label, then treat the first product-block
+        # price as the retail ask and the last as the displayed buyback.
+        if not re.search(r"Buyback\s*Price", block, re.I):
+            raise ValueError("buyback label not found")
         prices = re.findall(r"\$\s*([0-9,]+\.\d{2})", block)
-        buyback_match = re.search(r"Buyback\s*Price\s*\$?\s*([0-9,]+\.\d{2})", block, re.I)
-        if not prices:
-            raise ValueError("quantity-1 ask price not found")
-        if not buyback_match:
-            raise ValueError("buyback price not found")
+        if len(prices) < 2:
+            raise ValueError("ask/buyback prices not found")
 
         ask = float(prices[0].replace(",", ""))
-        bid = float(buyback_match.group(1).replace(",", ""))
+        bid = float(prices[-1].replace(",", ""))
         return [
             Observation(cls.dealer_id, canonical_sku, "ask", ask, cls.PRODUCT_URL, title, quantity_min=1, inventory_status="available"),
             Observation(cls.dealer_id, canonical_sku, "bid", bid, cls.PRODUCT_URL, title, quantity_min=1, inventory_status="displayed_buyback", bid_quality="B"),
