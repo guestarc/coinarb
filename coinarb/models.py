@@ -19,7 +19,7 @@ class Observation:
     quantity_max: Optional[float] = None
     inventory_status: Optional[str] = None
     bid_quality: Optional[str] = None
-    parser_version: str = "0.3.0"
+    parser_version: str = "0.3.2"
     observed_at_utc: str = ""
 
     def with_timestamp(self):
@@ -41,3 +41,4 @@ class FetchEvidence:
 class DealerCollection:
     observations: list[Observation] = field(default_factory=list)
     fetches: list[FetchEvidence] = field(default_factory=list)
+    parse_errors: list[str] = field(default_factory=list)
