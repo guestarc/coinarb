@@ -19,7 +19,7 @@ class Observation:
     quantity_max: Optional[float] = None
     inventory_status: Optional[str] = None
     bid_quality: Optional[str] = None
-    parser_version: str = "0.3.2"
+    parser_version: str = "0.3.3"
     observed_at_utc: str = ""
 
     def with_timestamp(self):
