@@ -2,6 +2,7 @@ from coinarb.adapters.bgasc import BGASCAdapter
 from coinarb.adapters.bullion_brothers import BullionBrothersAdapter
 from coinarb.adapters.bullionmax import BullionMaxAdapter
 from coinarb.adapters.fmr_gold import FMRGoldAdapter
+from coinarb.adapters.silver_com import SilverComAdapter
 
 SKU = "US-AGE-1OZ-RANDOM-BU"
 
@@ -46,3 +47,10 @@ def test_bullion_brothers_live_title_alias():
     obs = BullionBrothersAdapter.parse_text(text, SKU)
     assert obs[0].price == 4245.42
     assert obs[1].price == 4012.10
+
+
+def test_silver_com_structure():
+    text = "1 oz Gold American Eagle Coins (Random Year, BU) Qty 1-9 $4,250.10 $4,294.20 $4,426.50 Sell To Us Price: $4,010.25"
+    obs = SilverComAdapter.parse_text(text, SKU)
+    assert obs[0].price == 4250.10 and obs[0].side == "ask"
+    assert obs[1].price == 4010.25 and obs[1].bid_quality == "B"
